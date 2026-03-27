@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased text-slate-800 bg-slate-50 dark:bg-dark-900 dark:text-slate-200 transition-colors duration-300;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/70 dark:bg-dark-800/70 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-xl rounded-2xl;
+  }
+  
+  .glass-card {
+    @apply bg-white/80 dark:bg-dark-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-md rounded-xl hover:shadow-lg transition-all duration-300;
+  }
+  
+  .dropdown-menu {
+    @apply bg-white/95 dark:bg-dark-800/95 backdrop-blur-xl border border-slate-200/50 dark:border-white/10 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed;
+  }
+
+  .in-msg-bubble {
+    @apply relative bg-white dark:bg-dark-800 text-slate-800 dark:text-slate-100 px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm border border-slate-100 dark:border-slate-700/50 max-w-[85%];
+  }
+
+  .out-msg-bubble {
+    @apply relative bg-gradient-to-br from-primary-500 to-primary-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm shadow-sm max-w-[85%];
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 bg-white/80 dark:bg-dark-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all duration-200 placeholder-slate-400 font-sans;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-500;
+}
