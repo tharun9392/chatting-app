@@ -1,120 +1,275 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useNotification } from '../context/NotificationContext';
 
 interface User {
   _id: string;
   username: string;
+  displayName?: string;
   isAdmin: boolean;
   createdAt: string;
 }
 
 interface Chat {
   _id: string;
-  participants: string[];
+  participants: any[];
   lastActivity: string;
+  status: string;
+  messages: any[];
+  createdAt?: string;
 }
 
-const API_URL = 'http://localhost:5002/api';
+interface Stats {
+  users: number;
+  chats: number;
+  messages: number;
+  upTime: number;
+}
+
+const API_URL = 'http://127.0.0.1:5002/api';
 
 const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const { user, token } = useAuth();
   const navigate = useNavigate();
+  const { addNotification } = useNotification();
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [usersResponse, chatsResponse, statsResponse] = await Promise.all([
+        axios.get(`${API_URL}/users/all`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/chats/all`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/admin/stats`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      setUsers(usersResponse.data.users || usersResponse.data);
+      setChats(chatsResponse.data.chats);
+      setStats(statsResponse.data.stats);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      addNotification('Failed to load administrative data', 'error');
+      setLoading(false);
+    }
+  }, [token, addNotification]);
 
   useEffect(() => {
     if (!user?.isAdmin) {
       navigate('/');
       return;
     }
-
-    const fetchData = async () => {
-      try {
-        const [usersResponse, chatsResponse] = await Promise.all([
-          axios.get(`${API_URL}/users/all`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API_URL}/chats/all`, { headers: { Authorization: `Bearer ${token}` } })
-        ]);
-        setUsers(usersResponse.data.users || usersResponse.data);
-        setChats(chatsResponse.data.chats);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setLoading(false);
-      }
-    };
-
     fetchData();
-  }, [user, token, navigate]);
+  }, [user, navigate, fetchData]);
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+    
+    try {
+      await axios.delete(`${API_URL}/admin/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      addNotification('User deleted successfully', 'success');
+      fetchData(); // Refresh list
+    } catch (error) {
+      addNotification('Failed to delete user', 'error');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-dark-900">
+        <LoadingSpinner size="lg" />
+        <p className="mt-4 text-slate-500 font-medium">Loading administrative console...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-      
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <LoadingSpinner size="lg" />
-          <p className="mt-4 text-gray-500">Loading data...</p>
+    <div className="min-h-screen bg-slate-50 dark:bg-dark-900 p-6 md:p-10">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 space-y-4 md:space-y-0 text-slate-800 dark:text-white">
+          <div>
+            <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-primary-600 to-indigo-500 bg-clip-text text-transparent">
+              Admin Console
+            </h1>
+            <p className="mt-2 text-slate-500 dark:text-slate-400 font-medium flex items-center">
+              System overview and management for SecureChat
+            </p>
+          </div>
+          <Link to="/" className="btn-secondary flex items-center w-fit">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Chat
+          </Link>
         </div>
-      ) : (
-        <div>
-          <h2 className="text-xl font-bold mb-4">Users</h2>
-          <div className="overflow-x-auto mb-8">
-            <table className="min-w-full bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
-              <thead className="bg-gray-100 dark:bg-gray-700">
-                <tr>
-                  <th className="px-4 py-2 text-left">Username</th>
-                  <th className="px-4 py-2 text-left">Role</th>
-                  <th className="px-4 py-2 text-left">Created At</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(user => (
-                  <tr key={user._id} className="border-t border-gray-200 dark:border-gray-700">
-                    <td className="px-4 py-2">{user.username}</td>
-                    <td className="px-4 py-2">{user.isAdmin ? 'Admin' : 'User'}</td>
-                    <td className="px-4 py-2">{new Date(user.createdAt).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+        {/* Privacy Info & Stats Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-12">
+          <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {[
+              { label: 'Total Users', value: stats?.users || 0, icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', color: 'bg-blue-500' },
+              { label: 'Total Chats', value: stats?.chats || 0, icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', color: 'bg-emerald-500' },
+              { label: 'Messages', value: stats?.messages || 0, icon: 'M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z', color: 'bg-amber-500' },
+            ].map((stat, i) => (
+              <div key={i} className="glass-panel p-6 transform hover:scale-105 transition-transform duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-3 rounded-xl ${stat.color} text-white shadow-lg`}>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={stat.icon} />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm uppercase tracking-wider">{stat.label}</p>
+                <h3 className="text-3xl font-bold mt-1 text-slate-800 dark:text-white">{stat.value}</h3>
+              </div>
+            ))}
           </div>
 
-          <h2 className="text-xl font-bold mb-4">Chats</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
-              <thead className="bg-gray-100 dark:bg-gray-700">
-                <tr>
-                  <th className="px-4 py-2 text-left">Chat ID</th>
-                  <th className="px-4 py-2 text-left">Participants</th>
-                  <th className="px-4 py-2 text-left">Last Activity</th>
-                  <th className="px-4 py-2 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {chats.map(chat => (
-                  <tr key={chat._id} className="border-t border-gray-200 dark:border-gray-700">
-                    <td className="px-4 py-2">{chat._id}</td>
-                    <td className="px-4 py-2">{chat.participants.join(', ')}</td>
-                    <td className="px-4 py-2">{new Date(chat.lastActivity).toLocaleString()}</td>
-                    <td className="px-4 py-2">
-                      <button 
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mr-2"
-                        onClick={() => navigate(`/admin/chat/${chat._id}`)}
-                      >
-                        View Chat
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Privacy Notice */}
+          <div className="glass-panel p-6 border-primary-500/20 bg-primary-500/5 flex flex-col justify-center">
+            <div className="flex items-center mb-3">
+              <div className="p-2 bg-primary-500 rounded-lg text-white mr-3">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h4 className="font-bold text-sm dark:text-white uppercase tracking-tight">Privacy Status</h4>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+              End-of-End Encryption is **ACTIVE**. Admin audit view shows metadata only. Message content remains private to participants.
+            </p>
           </div>
         </div>
-      )}
+
+        {/* Content Tabs/Sections */}
+        <div className="space-y-12">
+          {/* Users Section */}
+          <div className="glass-panel overflow-hidden border-none shadow-2xl">
+            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-white/40 dark:bg-white/5">
+              <h2 className="text-xl font-bold flex items-center">
+                <svg className="w-5 h-5 mr-3 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                User Management
+              </h2>
+              <span className="px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-full text-xs font-bold uppercase">
+                {users.length} Total
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50/50 dark:bg-dark-800/50 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
+                    <th className="px-6 py-4">User</th>
+                    <th className="px-6 py-4">Role</th>
+                    <th className="px-6 py-4">Registered</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-slate-800 dark:text-slate-200">
+                  {users.map(u => (
+                    <tr key={u._id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-bold mr-3 shadow-inner">
+                            {u.username.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm">@{u.username}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[150px]">{u.displayName || 'No display name'}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${u.isAdmin ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}`}>
+                          {u.isAdmin ? 'ADMIN' : 'USER'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-500">
+                        {new Date(u.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button 
+                          onClick={() => handleDeleteUser(u._id)}
+                          disabled={u._id === user?._id}
+                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all disabled:opacity-20"
+                          title="Delete User"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Chats Section */}
+          <div className="glass-panel overflow-hidden border-none shadow-2xl">
+            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-white/40 dark:bg-white/5">
+              <h2 className="text-xl font-bold flex items-center">
+                <svg className="w-5 h-5 mr-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Chat Activity
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50/50 dark:bg-dark-800/50 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
+                    <th className="px-6 py-4">Participants</th>
+                    <th className="px-6 py-4 text-center">Messages</th>
+                    <th className="px-6 py-4">Last Activity</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-slate-800 dark:text-slate-200">
+                  {chats.map(chat => (
+                    <tr key={chat._id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
+                          {chat.participants.map((p: any, i: number) => (
+                            <div key={i} className="flex items-center px-2 py-1 bg-white/50 dark:bg-white/10 rounded-md border border-slate-200 dark:border-white/5">
+                              <span className="text-xs font-bold">@{typeof p === 'object' ? p.username : p}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="font-mono bg-slate-100 dark:bg-dark-700 px-2 py-1 rounded text-sm font-bold">
+                          {chat.messages?.length || 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-500">
+                        {new Date(chat.lastActivity || (chat as any).createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button 
+                          className="btn-primary text-xs !py-1.5 !px-3"
+                          onClick={() => navigate(`/admin/chat/${chat._id}`)}
+                        >
+                          View Audit
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

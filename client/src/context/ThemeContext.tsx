@@ -59,6 +59,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [theme]);
   
   // Sync theme when user logs in or settings change dynamically
+  // Sync theme when user logs in or settings change dynamically
   useEffect(() => {
     if (isAuthenticated && user?.settings?.darkMode !== undefined) {
       const newTheme = user.settings.darkMode ? 'dark' : 'light';
@@ -66,7 +67,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setTheme(newTheme);
       }
     }
-  }, [isAuthenticated, user?.settings?.darkMode]);
+  }, [isAuthenticated, user?.settings?.darkMode, theme]);
 
   // Toggle theme function
   const toggleTheme = () => {

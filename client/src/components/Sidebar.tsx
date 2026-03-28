@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -63,7 +63,7 @@ const Sidebar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const fetchCallHistory = async () => {
+  const fetchCallHistory = useCallback(async () => {
     if (!token) return;
     setIsCallsLoading(true);
     try {
@@ -76,13 +76,13 @@ const Sidebar: React.FC = () => {
     } finally {
       setIsCallsLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (activeTab === 'calls') {
       fetchCallHistory();
     }
-  }, [activeTab, callActive, location.pathname]);
+  }, [activeTab, callActive, location.pathname, fetchCallHistory]);
 
   const handleDeleteCall = async (e: React.MouseEvent, callId: string) => {
     e.stopPropagation();

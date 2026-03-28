@@ -11,7 +11,7 @@ interface SocketContextType {
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
-const SOCKET_URL = 'http://localhost:5002';
+const SOCKET_URL = 'http://127.0.0.1:5002';
 
 export const useSocket = () => {
   const context = useContext(SocketContext);

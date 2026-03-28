@@ -215,7 +215,17 @@ router.get('/all', adminMiddleware, async (req, res) => {
         resolve(docs);
       });
     });
-    res.json({ chats });
+    
+    // Enrich chats with participant usernames for admin display
+    const enrichedChats = await Promise.all(chats.map(async (chat) => {
+      const enrichedParticipants = await Promise.all(chat.participants.map(async (pId) => {
+        const user = await User.findById(pId);
+        return user ? { _id: user._id, username: user.username } : pId;
+      }));
+      return { ...chat, participants: enrichedParticipants };
+    }));
+    
+    res.json({ chats: enrichedChats });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -248,7 +258,7 @@ router.get('/:chatId', async (req, res) => {
       console.log('Is participant:', isParticipant);
     }
 
-    if (!isParticipant) {
+    if (!isParticipant && !req.user.isAdmin) {
       console.warn(`[Access Denied] User "${userIdStr}" is not a participant in chat ${chatId}`);
       return res.status(403).json({ message: 'Unauthorized access to this chat' });
     }
@@ -501,7 +511,7 @@ router.delete('/:chatId', async (req, res) => {
       return res.status(404).json({ message: 'Chat not found' });
     }
     
-    if (!chat.participants.includes(req.user._id)) {
+    if (!chat.participants.includes(req.user._id) && !req.user.isAdmin) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
     
@@ -526,7 +536,7 @@ router.delete('/:chatId/messages/:messageId', async (req, res) => {
     // Verify user is a participant
     const currentUserIdStr = String(userId || req.user?._id || req.user?.id);
     const isParticipant = chat.participants.some(pId => String(pId) === currentUserIdStr);
-    if (!isParticipant) {
+    if (!isParticipant && !req.user.isAdmin) {
       return res.status(403).json({ message: 'Unauthorized access' });
     }
 

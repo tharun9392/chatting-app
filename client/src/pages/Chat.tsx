@@ -59,7 +59,6 @@ const Chat: React.FC = () => {
   const [isMoreOptionsMenuOpen, setIsMoreOptionsMenuOpen] = useState(false);
   const { initiateCall } = useCall();
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
 
@@ -211,54 +210,6 @@ const Chat: React.FC = () => {
         }
       };
 
-      const handleMessagesRead = (data: { chatId: string; readerId: string }) => {
-        if (data.chatId === chatId) {
-          setChat(prevChat => {
-            if (!prevChat) return null;
-            const now = new Date().toISOString();
-            return {
-              ...prevChat,
-              messages: prevChat.messages.map(msg => {
-                if (String(msg.sender) === String(user?.id || user?._id) && !msg.readAt) {
-                  return { ...msg, readAt: now, deliveredAt: msg.deliveredAt || now };
-                }
-                return msg;
-              })
-            };
-          });
-        }
-      };
-
-      const handleMessagesDelivered = (data: { chatId: string; receiverId: string }) => {
-        if (data.chatId === chatId) {
-          setChat(prevChat => {
-            if (!prevChat) return null;
-            const now = new Date().toISOString();
-            return {
-              ...prevChat,
-              messages: prevChat.messages.map(msg => {
-                if (String(msg.sender) === String(user?.id || user?._id) && !msg.deliveredAt && !msg.readAt) {
-                  return { ...msg, deliveredAt: now };
-                }
-                return msg;
-              })
-            };
-          });
-        }
-      };
-
-      const handleMessageDeleted = (data: { chatId: string; messageId: string }) => {
-        if (data.chatId === chatId) {
-          setChat(prevChat => {
-            if (!prevChat) return null;
-            return {
-              ...prevChat,
-              messages: prevChat.messages.filter(msg => msg._id !== data.messageId)
-            };
-          });
-        }
-      };
-
       // Attach listeners exactly once
       socket.on('receive_message', handleReceiveMessage);
       socketListenersAttachedRef.current = true;
@@ -273,7 +224,7 @@ const Chat: React.FC = () => {
         currentRoomRef.current = { roomId: null, status: null };
       }
     };
-  }, [socket, isConnected, isAuthenticated, chatId, chat?.status, decryptMessage, isEncryptionReady, encryptionKeys.privateKey, chat, user]);
+  }, [socket, isConnected, isAuthenticated, chatId, chat?.status, decryptMessage, isEncryptionReady, encryptionKeys.privateKey, chat, user, token]);
 
   // Mark messages as read when chat is opened
   useEffect(() => {
@@ -316,7 +267,7 @@ const Chat: React.FC = () => {
     };
 
     markAsRead();
-  }, [chatId, token, chat?.messages.length, user, isConnected, socket]);
+  }, [chatId, token, chat, user, isConnected, socket]);
 
   // Mark messages as delivered when chat list is updated or chat opened
   useEffect(() => {
@@ -357,7 +308,7 @@ const Chat: React.FC = () => {
     };
 
     markAsDelivered();
-  }, [chatId, token, chat?.messages.length, user, isConnected, socket]);
+  }, [chatId, token, chat, user, isConnected, socket]);
 
   // Scroll to bottom when messages change
   useEffect(() => {

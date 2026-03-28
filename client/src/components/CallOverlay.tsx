@@ -20,10 +20,6 @@ const CallOverlay: React.FC = () => {
     callDuration,
     formatDuration
   } = useCall();
-
-  const remoteVideoTrackId = remoteStream?.getVideoTracks()[0]?.id;
-  const remoteAudioTrackId = remoteStream?.getAudioTracks()[0]?.id;
-
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const outgoingAudioRef = useRef<HTMLAudioElement>(null);
@@ -33,13 +29,17 @@ const CallOverlay: React.FC = () => {
   const OUTGOING_RING_URL = "https://assets.mixkit.co/active_storage/sfx/1358/1358-preview.mp3"; // Standard phone ring
   const INCOMING_RING_URL = "https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3"; // Incoming call tone
 
+  // Handle ringing sound effects
   useEffect(() => {
+    const currentOutgoingAudio = outgoingAudioRef.current;
+    const currentIncomingAudio = incomingAudioRef.current;
+
     // Handle Outgoing Ringing
     if (isCalling && !callActive) {
       const playOutgoing = () => {
-        if (outgoingAudioRef.current) {
-          outgoingAudioRef.current.loop = true;
-          outgoingAudioRef.current.play().catch(e => {
+        if (currentOutgoingAudio) {
+          currentOutgoingAudio.loop = true;
+          currentOutgoingAudio.play().catch(e => {
             if (e.name !== 'NotAllowedError') console.error("WebRTC Audio: Outgoing playback error:", e);
           });
         }
@@ -47,17 +47,17 @@ const CallOverlay: React.FC = () => {
       // Small delay to ensure ref corresponds to the DOM
       const timeoutId = setTimeout(playOutgoing, 100);
       return () => clearTimeout(timeoutId);
-    } else if (outgoingAudioRef.current) {
-      outgoingAudioRef.current.pause();
-      outgoingAudioRef.current.currentTime = 0;
+    } else if (currentOutgoingAudio) {
+      currentOutgoingAudio.pause();
+      currentOutgoingAudio.currentTime = 0;
     }
 
     // Handle Incoming Ringing
     if (incomingCall && !callActive) {
       const playIncoming = () => {
-        if (incomingAudioRef.current) {
-          incomingAudioRef.current.loop = true;
-          incomingAudioRef.current.play().catch(e => {
+        if (currentIncomingAudio) {
+          currentIncomingAudio.loop = true;
+          currentIncomingAudio.play().catch(e => {
             if (e.name !== 'NotAllowedError') console.error("WebRTC Audio: Incoming playback error:", e);
           });
         }
@@ -65,15 +65,15 @@ const CallOverlay: React.FC = () => {
       // Small delay to ensure ref corresponds to the DOM
       const timeoutId = setTimeout(playIncoming, 100);
       return () => clearTimeout(timeoutId);
-    } else if (incomingAudioRef.current) {
-      incomingAudioRef.current.pause();
-      incomingAudioRef.current.currentTime = 0;
+    } else if (currentIncomingAudio) {
+      currentIncomingAudio.pause();
+      currentIncomingAudio.currentTime = 0;
     }
 
     return () => {
-      // Cleanup on unmount
-      if (outgoingAudioRef.current) outgoingAudioRef.current.pause();
-      if (incomingAudioRef.current) incomingAudioRef.current.pause();
+      // Cleanup on unmount using local variables to prevent ref change issues
+      if (currentOutgoingAudio) currentOutgoingAudio.pause();
+      if (currentIncomingAudio) currentIncomingAudio.pause();
     };
   }, [isCalling, incomingCall, callActive]);
 

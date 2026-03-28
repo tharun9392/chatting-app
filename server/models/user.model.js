@@ -71,7 +71,24 @@ const User = {
     });
   },
   
-  // Find a user by username
+  // Find a user by username (case-insensitive)
+  findByUsername(username) {
+    console.log('Finding user by username (case-insensitive):', username);
+    return new Promise((resolve, reject) => {
+      // Use case-insensitive regex for NeDB
+      const query = { username: new RegExp('^' + username + '$', 'i') };
+      db.findOne(query, (err, doc) => {
+        if (err) {
+          console.error('Error finding user by username:', err);
+          return reject(err);
+        }
+        console.log('User found by username:', doc ? 'Yes' : 'No');
+        resolve(doc);
+      });
+    });
+  },
+  
+  // Find a user by username (original method)
   findOne(query) {
     console.log('Finding user with query:', JSON.stringify(query));
     return new Promise((resolve, reject) => {
@@ -114,6 +131,16 @@ const User = {
   // Compare password for login
   async comparePassword(user, candidatePassword) {
     return await bcrypt.compare(candidatePassword, user.password);
+  },
+  
+  // Find all users
+  findAll() {
+    return new Promise((resolve, reject) => {
+      db.find({}, (err, docs) => {
+        if (err) return reject(err);
+        resolve(docs);
+      });
+    });
   }
 };
 

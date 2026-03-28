@@ -4,11 +4,9 @@ import * as sodium from 'libsodium-wrappers';
 import {
   generateKeypair,
   encryptPrivateKey,
-  decryptPrivateKey,
   storeEncryptionKeys,
   retrieveEncryptionKeys,
-  hasEncryptionKeys,
-  getStoredPublicKeyHex
+  hasEncryptionKeys
 } from '../utils/encryption';
 
 // Define the shape of user data
@@ -46,7 +44,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Base API URL
-const API_URL = 'http://localhost:5002/api';
+const API_URL = 'http://127.0.0.1:5002/api';
 
 // Custom hook for using the auth context
 export const useAuth = () => {

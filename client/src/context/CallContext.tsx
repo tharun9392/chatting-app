@@ -55,7 +55,7 @@ const ICE_SERVERS = {
 };
 
 export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { socket, isConnected } = useSocket();
+  const { socket } = useSocket();
   const { user, token } = useAuth();
   
   const [isCalling, setIsCalling] = useState(false);
@@ -126,7 +126,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCallDuration(0);
     setIsAudioMuted(false);
     setIsVideoOff(false);
-  }, [callId, callDuration]);
+  }, [callId, callDuration, callActive, isCalling, incomingCall, targetId, callType, token]);
 
   const setupPeerConnection = useCallback((toId: string) => {
     const pc = new RTCPeerConnection(ICE_SERVERS);

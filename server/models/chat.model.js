@@ -134,6 +134,16 @@ const Chat = {
         }
       );
     });
+  },
+  
+  // Find all chats
+  findAll() {
+    return new Promise((resolve, reject) => {
+      db.find({}, (err, docs) => {
+        if (err) return reject(err);
+        resolve(docs);
+      });
+    });
   }
 };
 

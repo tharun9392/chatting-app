@@ -10,6 +10,7 @@ const userRoutes = require('./routes/user.routes');
 const { authMiddleware } = require('./middleware/auth.middleware');
 const chatRoutes = require('./routes/chat.routes');
 const callRoutes = require('./routes/call.routes');
+const adminRoutes = require('./routes/admin.routes');
 const Chat = require('./models/chat.model');
 const jwt = require('jsonwebtoken');
 
@@ -29,6 +30,9 @@ const io = new Server(server, {
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:3002',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+      'http://127.0.0.1:3002',
       process.env.CLIENT_URL
     ],
     methods: ['GET', 'POST'],
@@ -44,10 +48,14 @@ app.use(cors({
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3002',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:3002',
     process.env.CLIENT_URL
   ],
   credentials: true
 }));
+app.use(express.static('public'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -61,6 +69,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/calls', callRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Map to store user connections: { userId: Set<socketId> }
 const userConnections = new Map();

@@ -10,7 +10,8 @@ const router = express.Router();
 router.post('/register', async (req, res) => {
   try {
     console.log('Register route hit with body:', req.body);
-    const { username, password } = req.body;
+    let { username, password } = req.body;
+    username = username ? username.trim() : username;
     
     if (!username || !password) {
       console.log('Missing username or password');
@@ -96,25 +97,26 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     console.log('=== LOGIN REQUEST ===');
-    const { username, password } = req.body;
+    let { username, password } = req.body;
+    username = username ? username.trim() : username;
     
     if (!username || !password) {
       console.error('Missing credentials:', { hasUsername: !!username, hasPassword: !!password });
       return res.status(400).json({ message: 'Username and password are required' });
     }
     
-    console.log('Looking up user:', username);
-    // Find the user
-    const user = await User.findOne({ username });
+    console.log('Looking up user (case-insensitive):', username);
+    // Find the user case-insensitively
+    const user = await User.findByUsername(username);
     if (!user) {
-      console.error('User not found:', username);
+      console.error('Login failed: User not found ->', username);
       return res.status(401).json({ 
         message: 'Invalid credentials',
-        hint: 'Username not found. Please check the username and try again.' 
+        hint: 'Username not found. Please check the spelling or register if you are new.' 
       });
     }
     
-    console.log('User found. Comparing password...');
+    console.log('User found:', user.username, '(Requested:', username, '). Comparing password...');
     // Check password with error handling
     let isMatch = false;
     try {
